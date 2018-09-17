@@ -60,11 +60,23 @@ implementation{
           if(myMsg->dest == TOS_NODE_ID) {	// dest of packet has been reached
               dbg(FLOODING_CHANNEL, "Packet recieved at destination: %d\n", myMsg->dest);	// print destination node 
               dbg(FLOODING_CHANNEL, "Package Payload: %s\n", myMsg->payload);
+              
+	      if(myMsg->protocol == 0) {	// has not completed full RTT
+	      // swap dest and src, set protocol to PROTOCOL_PINGREPLY
+	      makePack(&sendPackage, myMsg->dest, myMsg->src, myMsg->TTL-1, PROTOCOL_PINGREPLY, myMsg->seq, myMsg->payload, PACKET_MAX_PAYLOAD_SIZE);
+	      call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+	      }
+
               return msg;
 	  }
           else if(myMsg->src == TOS_NODE_ID) {  // packet returned to src node
-	      dbg(FLOODING_CHANNEL, "Packet returned to source \n");
-	      return msg;
+	      dbg(FLOODING_CHANNEL, "Packet returned to source \n");	      
+
+	      if(myMsg->protocol == 1) {		// packet has returned from dest
+		  dbg(FLOODING_CHANNEL, "Packet has completed one RTT \n");
+	      }
+
+              return msg;
 	  }
           else {	// catch packet to determine if stale
               if(myMsg->TTL > 0) { 
@@ -93,7 +105,7 @@ implementation{
    }
 
    event void CommandHandler.printNeighbors(){
-
+       /* use list to store neighbor pairs */
 
   }
 
