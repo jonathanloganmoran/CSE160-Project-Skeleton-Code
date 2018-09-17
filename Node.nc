@@ -62,9 +62,10 @@ implementation{
               dbg(FLOODING_CHANNEL, "Package Payload: %s\n", myMsg->payload);
               
 	      if(myMsg->protocol == 0) {	// has not completed full RTT
-	      // swap dest and src, set protocol to PROTOCOL_PINGREPLY
-	      makePack(&sendPackage, myMsg->dest, myMsg->src, myMsg->TTL-1, PROTOCOL_PINGREPLY, myMsg->seq, myMsg->payload, PACKET_MAX_PAYLOAD_SIZE);
-	      call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+	          dbg(FLOODING_CHANNEL, "Packet one-way time (ms): TBA, TTL= %d\n", myMsg->TTL); 
+	          // swap dest and src, set protocol to PROTOCOL_PINGREPLY
+	          makePack(&sendPackage, myMsg->dest, myMsg->src, myMsg->TTL-1, PROTOCOL_PINGREPLY, myMsg->seq, myMsg->payload, PACKET_MAX_PAYLOAD_SIZE);
+	          call Sender.send(sendPackage, AM_BROADCAST_ADDR);
 	      }
 
               return msg;
@@ -73,8 +74,8 @@ implementation{
 	      dbg(FLOODING_CHANNEL, "Packet returned to source \n");	      
 
 	      if(myMsg->protocol == 1) {		// packet has returned from dest
-		  dbg(FLOODING_CHANNEL, "Packet has completed one RTT \n");
-	      }
+		  dbg(FLOODING_CHANNEL, "Packet has completed one RTT, TTL=  %d\n", myMsg->TTL);
+              }
 
               return msg;
 	  }
@@ -98,8 +99,8 @@ implementation{
 
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
       dbg(GENERAL_CHANNEL, "PING EVENT \n");
-      // set TTL to 10 from 0
-      makePack(&sendPackage, TOS_NODE_ID, destination, 10, 0, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
+      // set TTL= 8 to send packet from src = 1 to dest = 10
+      makePack(&sendPackage, TOS_NODE_ID, destination, 8, 0, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
       // call Sender.send(sendPackage, destination);
       call Sender.send(sendPackage, AM_BROADCAST_ADDR); //relay to nearby neighbors
    }
