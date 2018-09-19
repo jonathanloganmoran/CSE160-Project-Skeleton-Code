@@ -15,6 +15,7 @@ configuration NodeC{
 }
 implementation {
     components MainC;
+    components TimerMilliC() as myTimerC;
     components Node;
     components new AMReceiverC(AM_PACK) as GeneralReceive;
 
@@ -30,4 +31,6 @@ implementation {
 
     components CommandHandlerC;
     Node.CommandHandler -> CommandHandlerC;
+
+    Node.periodicTimer->myTimerC;	// wire to component
 }

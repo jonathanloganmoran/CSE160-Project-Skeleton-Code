@@ -13,10 +13,12 @@
 #include "includes/sendInfo.h"
 #include "includes/channels.h"
 #include "includes/protocol.h"
+#include "dataStructures/interfaces/List.nc"
+
 
 module Node{
    uses interface Boot;
-
+   uses interface Timer<TMilli> as periodicTimer; // for controlled neighbor discovery
    uses interface SplitControl as AMControl;
    uses interface Receive;
 
@@ -37,6 +39,17 @@ implementation{
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
 
+   event void periodicTimer.fired() {
+       /* do neighbor discovery 
+        * run every ~5ms
+        * send out two packets, one with ping to nearest neighbor, other with pingreply to reach sender
+        * catch when ping == pingreply and dest == tos_node_id
+        */
+
+   }
+
+
+
    event void AMControl.startDone(error_t err){
       if(err == SUCCESS){
          dbg(GENERAL_CHANNEL, "Radio On\n");
@@ -55,7 +68,7 @@ implementation{
 
       if(len==sizeof(pack)) {	// store pack if allocated size is enough
           pack* myMsg=(pack*) payload;	// cast as pack type
-          dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload); // broadcast contained message
+          //dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload); // broadcast contained message
 	  
           if(myMsg->dest == TOS_NODE_ID) {	// dest of packet has been reached
               dbg(FLOODING_CHANNEL, "Packet recieved at destination: %d\n", myMsg->dest);	// print destination node 
