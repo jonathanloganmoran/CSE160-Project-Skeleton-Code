@@ -13,8 +13,9 @@ enum{
 	PROTOCOL_NAME = 3,
 	PROTOCOL_TCP= 4,
 	PROTOCOL_DV = 5,
-	NEIGHBOR_REQUEST = 10;	// send packet to neighbors, wait for reply
-	NEIGHBOR_RECIEVE = 11;	// recieve packet from neighbor, handle request
+
+	NEIGHBOR_REQUEST = 10,	// send packet to neighbors, wait for reply
+	NEIGHBOR_RECIEVE = 11,	// recieve packet from neighbor, handle request
 
    PROTOCOL_CMD = 99
 };

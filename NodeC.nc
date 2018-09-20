@@ -15,7 +15,7 @@ configuration NodeC{
 }
 implementation {
     components MainC;
-    components TimerMilliC() as myTimerC;
+    components new TimerMilliC() as myTimerC;			// timer in ms, used for neighbor discovery
     components Node;
     components new AMReceiverC(AM_PACK) as GeneralReceive;
     components new ListC(neighbor, 64) as nListC;		// neighbor = object type, 64 = max # of elements in list
@@ -33,7 +33,6 @@ implementation {
     components CommandHandlerC;
     Node.CommandHandler -> CommandHandlerC;
 
-    
-
     Node.periodicTimer->myTimerC;	// wire to component
+    Node.nList->nListC;			// initialize instance
 }
