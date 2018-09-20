@@ -137,12 +137,24 @@ def main():
     s.bootAll();
     s.addChannel(s.COMMAND_CHANNEL);
     s.addChannel(s.GENERAL_CHANNEL);
+    s.addChannel(s.FLOODING_CHANNEL);	# initialize required channels
+    s.addChannel(s.NEIGHBOR_CHANNEL);
+
 
     s.runTime(20);
     s.ping(1, 2, "Hello, World");
     s.runTime(10);
-    s.ping(1, 3, "Hi!");
-    s.runTime(20);
+    # s.ping(1, 3, "Hi!");
+    # s.ping(1, 10, "Test message"); 
+    s.runTime(50);
+
+    s.neighborDMP(1);			# calls printNeighbor, parameter is desired node 
+    s.runTime(12);			# add time to get fetch neighbors
+    s.neighborDMP(3);			# i.e print node 3's neighbors
+    s.runTime(12);			# add processing time
+    s.neighborDMP(8);			# fetch node 8's neighbors
+    s.runTime(12);
+
 
 if __name__ == '__main__':
     main()

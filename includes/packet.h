@@ -6,24 +6,29 @@
 #define PACKET_H
 
 
-# include "protocol.h"
+#include "protocol.h"
 #include "channels.h"
 
 enum{
 	PACKET_HEADER_LENGTH = 8,
 	PACKET_MAX_PAYLOAD_SIZE = 28 - PACKET_HEADER_LENGTH,
-	MAX_TTL = 15
+	MAX_TTL = 10	// initialize new packets to be MAX_TTL
 };
 
 
 typedef nx_struct pack{
 	nx_uint16_t dest;
 	nx_uint16_t src;
-	nx_uint16_t seq;		//Sequence Number
+	nx_uint16_t seq;	//Sequence Number
 	nx_uint8_t TTL;		//Time to Live
 	nx_uint8_t protocol;
 	nx_uint8_t payload[PACKET_MAX_PAYLOAD_SIZE];
 }pack;
+
+typedef nx_struct neighbor{	// object type of neighboring node (element of List struct)
+        nx_uint16_t neighbor_id;
+}neighbor;
+
 
 /*
  * logPack
