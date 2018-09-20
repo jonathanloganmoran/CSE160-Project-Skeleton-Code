@@ -18,6 +18,7 @@ implementation {
     components TimerMilliC() as myTimerC;
     components Node;
     components new AMReceiverC(AM_PACK) as GeneralReceive;
+    components new ListC(neighbor, 64) as nListC;		// neighbor = object type, 64 = max # of elements in list
 
     Node -> MainC.Boot;
 
@@ -31,6 +32,8 @@ implementation {
 
     components CommandHandlerC;
     Node.CommandHandler -> CommandHandlerC;
+
+    
 
     Node.periodicTimer->myTimerC;	// wire to component
 }

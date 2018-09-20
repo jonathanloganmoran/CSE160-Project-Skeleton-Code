@@ -70,7 +70,22 @@ implementation{
           pack* myMsg=(pack*) payload;	// cast as pack type
           //dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload); // broadcast contained message
 	  
-          if(myMsg->dest == TOS_NODE_ID) {	// dest of packet has been reached
+	  if(myMsg->protocol == NEIGHBOR_REQUEST) {	// read packet from neighbor (protocol 10 == neighbor request)
+              dbg(NEIGHBOR_CHANNEL, "Neighbor request initiated");
+	      // set src = TOS_NODE_ID, dest = myMsg->dest, change protocol to 11 == neighbor recieve
+	      makePack(&sendPackage, TOS_NODE_ID, myMsg->dest, myMsg->TTL-1, NEIGHBOR_RECIEVE, myMsg->seq, myMsg->payload, PACKET_MAX_PAYLOAD_SIZE);
+	      call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+          }
+	  
+	  if(myMsg->protocol == NEIGHBOR_RECIEVE) {	// recieved packet from neighbor
+              if(myMsg->dest == TOS_NODE_ID) {
+		  dbg(NEIGHBOR_CHANNEL, "Neighbor node identified. Packet from node %d\n, is neighbors with this node %d\n ", myMsg->dest, myMsg->src);
+	      	  /* update node neighbor list */
+	      }
+              return msg;
+	  }
+
+	  if(myMsg->dest == TOS_NODE_ID) {	// dest of packet has been reached
               dbg(FLOODING_CHANNEL, "Packet recieved at destination: %d\n", myMsg->dest);	// print destination node 
               dbg(FLOODING_CHANNEL, "Package Payload: %s\n", myMsg->payload);
               
