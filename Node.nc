@@ -69,9 +69,8 @@ implementation{
         for(i = 0; i < size; i++) {
             call nList.popback();               // remove each node from list
         }
-
-        // rebroadcast, src= TOS_NODE_ID, dest= TOS_NODE_ID, set TTL to MAX_TLL, protocol=10, seq=0, payload,
-        // see def neighborDNP
+	// request for new neighbors
+        // rebroadcast, src= TOS_NODE_ID, dest= TOS_NODE_ID, set TTL to MAX_TLL, protocol=10, seq=0, payload
         makePack(&sendPackage, TOS_NODE_ID, TOS_NODE_ID, MAX_TTL, NEIGHBOR_REQUEST, 0, "neighbor command", PACKET_MAX_PAYLOAD_SIZE);
         call Sender.send(sendPackage, AM_BROADCAST_ADDR);       // send neighbor request to nearest neighbors, wait for NEIGHBOR_RECIEVE
    }
