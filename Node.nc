@@ -31,9 +31,10 @@ module Node{
 
 implementation{
    pack sendPackage;
-//   neighbor node = NULL;
    // Prototypes
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
+   // neighbor n = {TOS_NODE_ID} 
+   uint16_t currSeq = 0; 	// num of packets created vs forwarded 
 
    event void Boot.booted(){	// used to run interfaces
       call AMControl.start();
@@ -106,32 +107,36 @@ implementation{
 	  }
 
 	  // HANDLE FLOODING
-	  if(myMsg->dest == TOS_NODE_ID) {	// dest of packet has been reached
-              dbg(FLOODING_CHANNEL, "Packet recieved at destination: %d\n", myMsg->dest);	// print destination node 
-              dbg(FLOODING_CHANNEL, "Package Payload: %s\n", myMsg->payload);
+	  if(myMsg->dest == TOS_NODE_ID) {
+             // dbg(FLOODING_CHANNEL, "Packet recieved at destination: %d\n", myMsg->dest);
+             // dbg(FLOODING_CHANNEL, "Package Payload: %s\n", myMsg->payload);
               
 	      if(myMsg->protocol == 0) {	// has not completed full RTT
 	          //dbg(FLOODING_CHANNEL, "Packet one-way time (ms): TBA, TTL= %d\n", myMsg->TTL); 
 	          // swap dest and src, set protocol to PROTOCOL_PINGREPLY
 	          makePack(&sendPackage, myMsg->dest, myMsg->src, myMsg->TTL-1, PROTOCOL_PINGREPLY, myMsg->seq, myMsg->payload, PACKET_MAX_PAYLOAD_SIZE);
 	          call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+		  currSeq++;			// packet is being echoed
 		  return msg;
 	      }
-              return msg;
+              // else ping reply recieved
 	  }
-          else if(myMsg->src == TOS_NODE_ID) {  // packet returned to src node
-	      dbg(FLOODING_CHANNEL, "Packet returned to source \n");	      
+          else if(myMsg->src == TOS_NODE_ID) {
+	      // dbg(FLOODING_CHANNEL, "Packet returned to source \n");	      
 
-	      if(myMsg->protocol == 1) {		// packet has returned from dest
-		  dbg(FLOODING_CHANNEL, "Packet has completed one RTT, TTL=  %d\n", myMsg->TTL);
+	      if(myMsg->protocol == 1) {
+	      // dbg(FLOODING_CHANNEL, "Packet has completed one RTT, TTL=  %d\n", myMsg->TTL);
               }
               return msg;
 	  }
           else {	// catch packet to determine if stale
+	      // check if in previous known packlist
+              // to be implemented in project #2
               if(myMsg->TTL > 0) { 
 		  // repeat packet
 	          makePack(&sendPackage, myMsg->src, myMsg->dest, myMsg->TTL-1, myMsg->protocol, myMsg->seq, myMsg->payload, PACKET_MAX_PAYLOAD_SIZE);
 		  call Sender.send(sendPackage, AM_BROADCAST_ADDR);	// send to neighbors	
+		  // push packet to node's packlist -- proj_2
 	          return msg;
 	      }
 	      return msg;
@@ -149,19 +154,22 @@ implementation{
       dbg(GENERAL_CHANNEL, "PING EVENT \n");
       // set TTL= 8 to send packet from src = 1 to dest = 10
       // UPDATED: TTL = MAX_TTL to allow packet to circle back to src
-      makePack(&sendPackage, TOS_NODE_ID, destination, MAX_TTL, 0, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
+      // UPDATED: currSeq = num of packets recieved at TOS_NODE_ID == src
+      makePack(&sendPackage, TOS_NODE_ID, destination, MAX_TTL, 0, currSeq, payload, PACKET_MAX_PAYLOAD_SIZE);
       // call Sender.send(sendPackage, destination);
       call Sender.send(sendPackage, AM_BROADCAST_ADDR); //relay to nearby neighbors
+      currSeq++;
+
    }
 
    event void CommandHandler.printNeighbors(){
        /* use list to store neighbor pairs */
        uint16_t i;
-       neighbor node;				// initialize instance
+       neighbor node;				// initialize entries
        uint16_t size = call nList.size();	// size() returns num of neighbors in node list
        dbg(NEIGHBOR_CHANNEL, "Direct neighbors of %d are: \n", TOS_NODE_ID);
        for(i = 0; i < size; i++) {
-           node = call nList.get(i);		// return neighbor_id
+           node = call nList.get(i);		// return neighbor_id list
            dbg(NEIGHBOR_CHANNEL, "%d\n", node.neighbor_id);
        }
   }
