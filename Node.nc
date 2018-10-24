@@ -1,48 +1,78 @@
 /*
  * ANDES Lab - University of California, Merced
  * This class provides the basic functions of a network node.
- *
+ * 
  * @author UCM ANDES Lab
  * @date   2013/09/03
  *
  */
-#include <Timer.h>
+
+/* [Project #2: Distance Vector Routing]
+ * 
+ * last edited:
+ * @date         2018/10/24
+ * @author       jonathanloganmoran
+ *
+ */
+
+
+#include <Timer.h>			// new timers
 #include "includes/command.h"
-#include "includes/packet.h"
+#include "includes/packet.h"		// modified neighbor struct
 #include "includes/CommandMsg.h"
 #include "includes/sendInfo.h"
 #include "includes/channels.h"
-#include "includes/protocol.h"
+#include "includes/protocol.h"		// new routing protocols
 
 module Node{
-   uses interface Boot;
+    uses interface Boot;
    
 
-   uses interface SplitControl as AMControl;
-   uses interface Receive;
+    uses interface SplitControl as AMControl;
+    uses interface Receive;
 
-   uses interface SimpleSend as Sender;
+    uses interface SimpleSend as Sender;
 
-   uses interface CommandHandler;
+    uses interface CommandHandler;	// added routing table calls
+    uses interface Timer<TMilli> as periodicTimer;
 
-   uses interface List<neighbor> as nList;	  // for neighbor List structure
-   uses interface Timer<TMilli> as periodicTimer; // for controlled neighbor discovery
+    /* wire from NodeC.nc for neighbor discovery */
+    uses interface List<neighbor> as nList;          // next-hop list
+    uses interface List<neighbor> as nRefresher;     // periodic updates	 
+    uses interface Timer<TMilli> as ntimer;	     // neighbor refresh routine
+
+    /* wire from NodeC.nc for DVR-RIP */
+    uses interface List<pack> as prevPacks;	     // prevents ping echoing
+    uses interface List<route> as routeTable;	     // next-hop global routing
+    uses interface List<route> as forwardTable;	     // next-hop neighbor routes
+    uses interface Timer<TMilli> as rtimer; 	     // force updates every 20s
 }
 
-implementation{
-   pack sendPackage;
-   // Prototypes
-   void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
-   // neighbor n = {TOS_NODE_ID} 
-   uint16_t currSeq = 0; 	// num of packets created vs forwarded 
 
-   event void Boot.booted(){	// used to run interfaces
-      call AMControl.start();
-      
-      call periodicTimer.startPeriodic(200000);		// run for 200,0000 (?), optimal for neighbor list refresh
-      dbg(NEIGHBOR_CHANNEL, "Timer initiated! \n");
-      dbg(GENERAL_CHANNEL, "Booted\n");
-   }
+implementation{
+    pack sendPackage;
+    
+    /* sequence variable for deterministic routing */
+    uint16_t curr_seq = 0;
+
+    /* prototype of pack contents */
+    void makePack(pack *Package, 
+        uint16_t src, 
+        uint16_t dest, 
+        uint16_t TTL, 
+        uint16_t Protocol, 
+	uint16_t seq, 
+	uint8_t *payload, 
+	uint8_t length);
+
+    event void Boot.booted(){	// used to run interfaces
+        call AMControl.start();
+        /* start neighbor discovery + routing routines */
+        call ntimer.startPeriodic(200000);
+        call rtimer.startPeriodic(200000);
+        dbg(NEIGHBOR_CHANNEL, "Timer initiated! \n");
+        dbg(GENERAL_CHANNEL, "Booted\n");
+    }
 
    event void AMControl.startDone(error_t err){
       if(err == SUCCESS){ 
@@ -54,27 +84,118 @@ implementation{
       }
    }
 
-   event void AMControl.stopDone(error_t err){}
+    event void AMControl.stopDone(error_t err){}
 
-   event void periodicTimer.fired() {
-       /* remove neighbors from node's list
-        * run every ~200,000
-        * send out two packets, one with ping to nearest neighbor, other with pingreply to reach sender
-        * catch when ping == pingreply and dest == tos_node_id
-        * MOVE BELOW AMCONTROL IMPLEMENTATION
-        */
-        uint16_t i = 0;                         // initializing index variable for neighbor list
-        uint16_t size = call nList.size();        // fetch current node list size
+    /* implement neighbor refresh routine every 200s */
+    event void ntimer.fired() {
+        bool found;
+	bool empty;
+	neighbor n;
+	neighbor nr;
+	neighbor* np;
+	uint16_t i;
+	uint16_t j;
+	uint16_t nsize;
+	uint16_t nrsize;
+	nsize = call nList.size();
+	nrsize = call nRefresher.size();
+	
+    /* Project #2: Task 1 -- Neighbor Discovery
+         * neighbor refresh routine
+         * channel: dbg(NEIGHBOR_CHANNEL, "nList refresh routine %d. . .", TOS_NODE_ID);
+         */
 
-        for(i = 0; i < size; i++) {
-            call nList.popback();               // remove each node from list
+        for(i = 0; i < nsize; i++) { 			// for all neighbors
+            np = call nList.getAddr(i);			// get nList pack
+            np->TTL--;					// and reduce TTL
         }
 
-        // rebroadcast, src= TOS_NODE_ID, dest= TOS_NODE_ID, set TTL to MAX_TLL, protocol=10, seq=0, payload,
-        // see def neighborDNP
-        makePack(&sendPackage, TOS_NODE_ID, TOS_NODE_ID, MAX_TTL, NEIGHBOR_REQUEST, 0, "neighbor command", PACKET_MAX_PAYLOAD_SIZE);
-        call Sender.send(sendPackage, AM_BROADCAST_ADDR);       // send neighbor request to nearest neighbors, wait for NEIGHBOR_RECIEVE
-   }
+        /* compare rRefresher with nList to update route metrics */
+	empty = call nRefresher.isEmpty();
+	
+	while(!empty) {
+	    nr = call nRefresher.popfront();		// return + remove route
+	    found = FALSE;				// initialize recog. route flag
+
+	    for(j = 0; j < nsize; j++) {
+	    	np = call nList.getAddr(j);		// return neighbor pointer
+		if(np->id == n.id) { 			// previously found
+		    np->TTL = NEIGHBOR_LIFESPAN;	// reset TTL
+		    found = TRUE;			// flag recognized route
+		    j = nsize;				// break loop
+		}
+	    }
+
+	    if(found == FALSE) {			// neighbor not in nList
+		nr.TTL = NEIGHBOR_LIFESPAN;		// reset TTL
+		call nList.pushfront(nr);		// put new route in nList
+            }
+
+	    empty = call nRefresher.isEmpty();
+	}
+
+        for(i = 0; i < nsize; i++) {			// wipe missing neighbors from nList
+	    n = call nList.popfront();			// pull neighbor
+	    if(n.TTL < 0) {				// check if not stale
+	        call nList.pushback(n);			// push to nList
+	    }
+	}
+
+	//send refresh packet
+	makePack(&sendPackage, TOS_NODE_ID, TOS_NODE_ID, MAX_TTL, NEIGHBOR_REFRESH, currentSequence, "neighbor command", PACKET_MAX_PAYLOAD_SIZE);
+	call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+       	curr_seq++;
+    }
+
+    event void rtimer.fired() {
+	bool found;
+	bool empty;
+	neighbor n;
+	route r;
+	route *rp;
+	uint16_t id;
+	uint16_t i;
+	uint16_t j;
+	uint16_t fsize;
+	uint16_t nsize;
+        uint16_t risze;
+	
+        /* get size of neighbor routing tables */
+	nsize = call nList.size();
+	fsize = call forwardTable.size();
+	rsize = call routeTable.size();
+	
+	/* handle forwarding updates */
+        for(i = 0; i < nsize; i++) {
+	    n = call nList.get(i);
+	    found = FALSE;
+
+	    /* check if found in forwardTable */
+	    for(j = 0; j < fsize; j++) {
+    		r = call forwardTable.get(j);
+		if(r.dest == n.id) {
+		    found = TRUE;		// exists in table
+		    j = fsize;			// break loop
+		}
+	    }
+	    if(found == FALSE) {		// does not exist in forwardTable
+		r.dest = n.id;
+		r.next = n.id;
+		r.cost = 1;
+
+		/* store change in routing tables */
+		call forwardTable.pushback(r);
+		call routeTable.pushback(r);
+
+		/* update table size and rebroadcast */
+		fsize = call forwardTable.size();
+		makePack(&sendPackage, TOS_NODE_ID, n.id, 1, PROTOCOL_ROUTEUPDATE, curr_seq, "route update", PACKET_MAX_PAYLOAD_SIZE);
+		
+		/* using new method to limit circulation */
+		neighborBroadcast(n.id);
+		curr_seq++;
+	    }
+	}
 
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
 
