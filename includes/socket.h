@@ -6,6 +6,13 @@ enum{
     ROOT_SOCKET_ADDR = 255,
     ROOT_SOCKET_PORT = 255,
     SOCKET_BUFFER_SIZE = 128,
+
+    /* T3.1: connection setup + teardown */
+    SYN = 1;		// SYN_SENT
+    ACK = 2;		// SYN_RCVD
+    FIN = 3;		// CLOSED
+
+
 };
 
 enum socket_state{
@@ -16,6 +23,12 @@ enum socket_state{
     SYN_RCVD,
 };
 
+/* T3.2: transmit advertised_window data */
+typedef nx_struct TCP_PAYLOAD {
+    uint8_t flag;
+    nx_socket_port_t destPort;		// attempting to connect to
+    nx_socket_port_t srcPrt;		// previously connected port
+}TCP_PAYLOAD;
 
 typedef nx_uint8_t nx_socket_port_t;
 typedef uint8_t socket_port_t;

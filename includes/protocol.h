@@ -1,7 +1,8 @@
 //Author: UCM ANDES Lab
 //$Author: abeltran2 $
-//$LastChangedDate: 2014-06-16 13:16:24 -0700 (Mon, 16 Jun 2014) $
-
+//$LastChangedBy: jonathanloganmoran
+//$LastChangedDate: 2018-11-12 $
+y
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
@@ -20,6 +21,8 @@ enum{
 	PROTOCOL_NEIGHBORRECEIVE = 11,	// P2: receive packet from neighbor, handle request
 	PROTOCOL_ROUTEUPDATE = 12;	// P2: broadcast updated route
 
+	/* Project #3: TCP */
+	PROTOCOL_TCPDATA = 13;		// P3: init TCP window transfer
    PROTOCOL_CMD = 99
 };
 
