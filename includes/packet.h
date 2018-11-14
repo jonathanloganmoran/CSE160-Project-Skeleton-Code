@@ -1,6 +1,6 @@
 //Author: UCM ANDES Lab
 //$Author: abeltran2 $
-//$LastChangedBy: abeltran2 $
+//$LastChangedBy: jonathanloganmoran $
 
 #ifndef PACKET_H
 #define PACKET_H
@@ -12,22 +12,44 @@
 enum{
 	PACKET_HEADER_LENGTH = 8,
 	PACKET_MAX_PAYLOAD_SIZE = 28 - PACKET_HEADER_LENGTH,
-	MAX_TTL = 10	// initialize new packets to be MAX_TTL
+	MAX_TTL = 10				// initialize new packets to be MAX_TTL
+	NEIGHBOR_LIFESPAN = 3;			// missed neighbor updates before assumed node death
+	INFINITE_COST = 0;			// P2: poison reverse cost updates
+
+	/* init P3: connection setup/teardown */
+	MAX_TRANSMISSION_SIZE = 64;		// max packets transferrable in single TCP
+	SYN = 1;				// P3: establish a connection (request)
+	ACK = 2;				// P3: acknowledge receieved SYN packet (accept)
+	FIN = 3;				// P3: connection teardown (close)
+
 };
 
-
+/* Project #1: neighbor discovery */
 typedef nx_struct pack{
 	nx_uint16_t dest;
 	nx_uint16_t src;
-	nx_uint16_t seq;	//Sequence Number
-	nx_uint8_t TTL;		//Time to Live
-	nx_uint8_t protocol;
+	nx_uint16_t seq;			// P1: broadcast packets
+	nx_uint8_t TTL;				// P1: wait for neighbors
+	nx_uint8_t protocol;			// P1: ping/ping_reply
 	nx_uint8_t payload[PACKET_MAX_PAYLOAD_SIZE];
 }pack;
 
-typedef nx_struct neighbor{	// object type of neighboring node (element of List struct)
-        nx_uint16_t neighbor_id;
+/* Project #2: DVR-RIP */
+typedef nx_struct neighbor{			// P2: node struct
+        nx_uint16_t id;				// P2: nexthop node
+	nx_uint16_t TTL;			// P2: detect link death
 }neighbor;
+
+typedef nx_struct route{
+	nx_uint16_t dest;			// P2: global node id
+	nx_uint16_t next;			// P2: nexthop node id
+	nx_uint8_t cost;			// P2: hop metrics
+}route;
+
+/* Project #3: TCP */
+typedef nx_struct socket{
+
+}socket;
 
 
 /*

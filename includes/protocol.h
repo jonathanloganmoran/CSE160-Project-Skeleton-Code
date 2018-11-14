@@ -11,11 +11,14 @@ enum{
 	PROTOCOL_PINGREPLY = 1,
 	PROTOCOL_LINKEDLIST = 2,
 	PROTOCOL_NAME = 3,
-	PROTOCOL_TCP= 4,
+	PROTOCOL_TCP= 4,		// P3: handle connection setup/teardown
 	PROTOCOL_DV = 5,
 
-	NEIGHBOR_REQUEST = 10,	// send packet to neighbors, wait for reply
-	NEIGHBOR_RECIEVE = 11,	// recieve packet from neighbor, handle request
+
+	/* Project #2: DVR-RIP */
+	PROTOCOL_NEIGHBORREQUEST = 10,	// P2: send packet to neighbors, wait for reply
+	PROTOCOL_NEIGHBORRECEIVE = 11,	// P2: receive packet from neighbor, handle request
+	PROTOCOL_ROUTEUPDATE = 12;	// P2: broadcast updated route
 
    PROTOCOL_CMD = 99
 };
